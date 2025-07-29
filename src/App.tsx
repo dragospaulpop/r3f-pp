@@ -10,10 +10,13 @@ import { Canvas, type ThreeEvent } from "@react-three/fiber";
 import {
   EffectComposer,
   Outline,
-  Select,
   Selection,
+  selectionContext,
+  type SelectApi,
 } from "@react-three/postprocessing";
-import { useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+
 import "./App.css";
 
 function App() {
@@ -38,7 +41,7 @@ function App() {
           <EffectComposer autoClear={false}>
             <Outline
               blur
-              edgeStrength={2.5}
+              edgeStrength={10}
               visibleEdgeColor={0xffffff}
               hiddenEdgeColor={0x22090a}
             />
@@ -96,6 +99,34 @@ function CustomBox({
         </mesh>
       </DragControls>
     </Select>
+  );
+}
+
+export function Select({ enabled = false, children, ...props }: SelectApi) {
+  const group = useRef<THREE.Group>(null!);
+  const api = useContext(selectionContext);
+  useEffect(() => {
+    if (api && enabled) {
+      let changed = false;
+      const current: THREE.Object3D[] = [];
+      group.current.traverse((o) => {
+        o.type === "Mesh" && current.push(o);
+        if (api.selected.indexOf(o) === -1) changed = true;
+      });
+      if (changed) {
+        api.select((state) => [...state, ...current]);
+        return () => {
+          api.select((state) =>
+            state.filter((selected) => !current.includes(selected))
+          );
+        };
+      }
+    }
+  }, [enabled, children]);
+  return (
+    <group ref={group} {...props}>
+      {children}
+    </group>
   );
 }
 
