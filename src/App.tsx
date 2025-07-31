@@ -16,15 +16,113 @@ import {
 import { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
+import { MinusIcon, PlusIcon } from "lucide-react";
 import "./App.css";
+import { Button } from "./components/ui/button";
+
+type Piece = {
+  id: string;
+  position: [number, number, number];
+  rotation: [number, number, number];
+  scale: number;
+  color: string;
+};
+
+const initialPieces: Piece[] = [
+  {
+    id: "a",
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#ff0000",
+  },
+  {
+    id: "b",
+    position: [0, 1, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#0000ff",
+  },
+  {
+    id: "c",
+    position: [0, 2, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#00ff00",
+  },
+  {
+    id: "d",
+    position: [0, 3, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#ffff00",
+  },
+  {
+    id: "e",
+    position: [0, 4, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#ff00ff",
+  },
+  {
+    id: "f",
+    position: [0, 5, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    color: "#ffa500",
+  },
+];
+
+const generatePiece = (): Piece => {
+  const id = Math.random().toString(36).substring(2, 15);
+  const position = [
+    Math.random() * 10 - 5,
+    Math.random() * 10 - 5,
+    Math.random() * 10 - 5,
+  ] as [number, number, number];
+  const rotation = [0, 0, 0] as [number, number, number];
+  const scale = 1;
+  const color = `#${Math.floor(Math.random() * 16777215)
+    .toString(16)
+    .padEnd(6, "0")}`;
+  return { id, position, rotation, scale, color };
+};
 
 function App() {
   const [selectedId, setSelectedId] = useState<string[]>([]);
+  const [pieces, setPieces] = useState<Piece[]>([]);
+
+  useEffect(() => {
+    setPieces(initialPieces);
+  }, []);
 
   return (
-    <div className="w-screen h-screen bg-neutral-300">
+    <div className="w-screen h-screen bg-neutral-300 relative">
+      <div className="absolute top-4 right-4 flex gap-2 z-10">
+        <Button
+          variant="outline"
+          size="icon"
+          className="text-blue-500"
+          onClick={() => setPieces([...pieces, generatePiece()])}
+        >
+          <PlusIcon className="w-4 h-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="text-red-500"
+          onClick={() => setPieces(pieces.slice(0, -1))}
+        >
+          <MinusIcon className="w-4 h-4" />
+        </Button>
+      </div>
+
       <Canvas onPointerMissed={() => setSelectedId([])}>
-        <OrbitControls enabled={!selectedId} />
+        <OrbitControls
+          enabled={selectedId.length === 0}
+          minPolarAngle={0}
+          maxPolarAngle={Math.PI / 2.25}
+        />
         <PerspectiveCamera makeDefault position={[0, 0, 10]} />
         <ambientLight intensity={Math.PI / 2} />
         <spotLight
@@ -45,42 +143,22 @@ function App() {
               hiddenEdgeColor={0x22090a}
             />
           </EffectComposer>
-          <CustomBox
-            isSelected={selectedId.includes("a")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "a"])}
-            position={[0, 0, 0]}
-            color="red"
-          />
-          <CustomBox
-            isSelected={selectedId.includes("b")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "b"])}
-            position={[0, 1, 0]}
-            color="blue"
-          />
-          <CustomBox
-            isSelected={selectedId.includes("c")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "c"])}
-            position={[0, 2, 0]}
-            color="green"
-          />
-          <CustomBox
-            isSelected={selectedId.includes("d")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "d"])}
-            position={[0, 3, 0]}
-            color="yellow"
-          />
-          <CustomBox
-            isSelected={selectedId.includes("e")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "e"])}
-            position={[0, 4, 0]}
-            color="purple"
-          />
-          <CustomBox
-            isSelected={selectedId.includes("f")}
-            onPointerDown={() => setSelectedId((prev) => [...prev, "f"])}
-            position={[0, 5, 0]}
-            color="orange"
-          />
+          {pieces.map((piece) => (
+            <CustomBox
+              id={piece.id}
+              key={piece.id}
+              isSelected={selectedId.includes(piece.id)}
+              onPointerDown={() =>
+                setSelectedId((prev) =>
+                  prev.includes(piece.id)
+                    ? prev.filter((id) => id !== piece.id)
+                    : [...prev, piece.id]
+                )
+              }
+              position={piece.position}
+              color={piece.color}
+            />
+          ))}
         </Selection>
 
         <Table />
@@ -112,17 +190,19 @@ const CustomBox = memo(
     onPointerDown,
     color,
     position,
+    id,
   }: {
     isSelected: boolean;
     onPointerDown: () => void;
     color: string;
     position: [number, number, number];
+    id: string;
   }) => {
     return (
       <Select enabled={isSelected}>
         <DragControls axisLock={"y"}>
           <group scale={1} position={position} onClick={onPointerDown}>
-            <mesh>
+            <mesh name={id}>
               <boxGeometry args={[1, 1, 1]} />
               <meshStandardMaterial color={color} />
             </mesh>
@@ -160,39 +240,49 @@ export function Select({ enabled = false, children, ...props }: SelectApi) {
   const api = useContext(selectionContext);
   useEffect(() => {
     if (api) {
-      const toAdd: THREE.Object3D[] = [];
-      const toRemove: THREE.Object3D[] = [];
+      const toBeAdded: THREE.Object3D[] = [];
+      const toBeRemoved: THREE.Object3D[] = [];
+      const current: THREE.Object3D[] = [];
 
       group.current.traverse((o) => {
         if (o.type === "Mesh") {
-          if (!api.selected.some((m) => m.uuid === o.uuid)) {
-            toAdd.push(o);
-          } else {
-            toRemove.push(o);
+          current.push(o);
+
+          const alreadySelected = api.selected.some((m) => m.uuid === o.uuid);
+
+          if (enabled && !alreadySelected) {
+            toBeAdded.push(o);
+          } else if (!enabled && alreadySelected) {
+            toBeRemoved.push(o);
           }
         }
       });
 
-      if (enabled && toAdd.length > 0) {
+      if (toBeAdded.length > 0) {
         api.select((state) => {
-          return [...state, ...toAdd];
+          return [...state, ...toBeAdded];
         });
       }
 
-      if (!enabled && toRemove.length > 0) {
+      if (toBeRemoved.length > 0) {
         api.select((state) => {
-          return state.filter((o) => !toRemove.some((m) => m.uuid === o.uuid));
+          return state.filter((o) => !toBeRemoved.includes(o));
         });
       }
 
       return () => {
-        if (!enabled && toRemove.length > 0) {
+        // the cleanup function only handles objects removed from the scene
+        // if a mesh doesn't have a parent, it means it's not attached to a scene and we can remove it from the selection
+        // so that we don't hog the memory with deleted objects
+
+        const orphaned = current.filter((o) => o.parent === null);
+
+        if (orphaned.length > 0) {
           api.select((state) => {
-            return state.filter(
-              (o) => !toRemove.some((m) => m.uuid === o.uuid)
-            );
+            return state.filter((o) => !orphaned.includes(o));
           });
         }
+
         return;
       };
     }
@@ -207,7 +297,7 @@ export function Select({ enabled = false, children, ...props }: SelectApi) {
 export default App;
 
 /**
-From my understanding, this is what causes the infinite loop:
+From my findings, this is what causes the infinite loop:
 
 1. Object Tracking and State Comparison (Infinite Loop Cause):
 - The `useEffect` hook iterates through all Object3D instances within the group to determine if a state change is needed (changed flag is set if `api.selected.indexOf(o) === -1`).
