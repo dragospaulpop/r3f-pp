@@ -19,11 +19,11 @@ import * as THREE from "three";
 import "./App.css";
 
 function App() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string[]>([]);
 
   return (
     <div className="w-screen h-screen bg-neutral-300">
-      <Canvas onPointerMissed={() => setSelectedId(null)}>
+      <Canvas onPointerMissed={() => setSelectedId([])}>
         <OrbitControls enabled={!selectedId} />
         <PerspectiveCamera makeDefault position={[0, 0, 10]} />
         <ambientLight intensity={Math.PI / 2} />
@@ -46,38 +46,38 @@ function App() {
             />
           </EffectComposer>
           <CustomBox
-            isSelected={selectedId === "a"}
-            onPointerDown={() => setSelectedId("a")}
+            isSelected={selectedId.includes("a")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "a"])}
             position={[0, 0, 0]}
             color="red"
           />
           <CustomBox
-            isSelected={selectedId === "a"}
-            onPointerDown={() => setSelectedId("b")}
+            isSelected={selectedId.includes("b")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "b"])}
             position={[0, 1, 0]}
             color="blue"
           />
           <CustomBox
-            isSelected={selectedId === "c"}
-            onPointerDown={() => setSelectedId("c")}
+            isSelected={selectedId.includes("c")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "c"])}
             position={[0, 2, 0]}
             color="green"
           />
           <CustomBox
-            isSelected={selectedId === "d"}
-            onPointerDown={() => setSelectedId("d")}
+            isSelected={selectedId.includes("d")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "d"])}
             position={[0, 3, 0]}
             color="yellow"
           />
           <CustomBox
-            isSelected={selectedId === "e"}
-            onPointerDown={() => setSelectedId("e")}
+            isSelected={selectedId.includes("e")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "e"])}
             position={[0, 4, 0]}
             color="purple"
           />
           <CustomBox
-            isSelected={selectedId === "f"}
-            onPointerDown={() => setSelectedId("f")}
+            isSelected={selectedId.includes("f")}
+            onPointerDown={() => setSelectedId((prev) => [...prev, "f"])}
             position={[0, 5, 0]}
             color="orange"
           />
