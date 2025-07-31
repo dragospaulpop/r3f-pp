@@ -52,7 +52,7 @@ function App() {
             color="red"
           />
           <CustomBox
-            isSelected={selectedId === "b"}
+            isSelected={selectedId === "a"}
             onPointerDown={() => setSelectedId("b")}
             position={[0, 1, 0]}
             color="blue"
@@ -146,7 +146,7 @@ export function Selection({
   const [selected, select] = useState<THREE.Object3D[]>([]);
   const value = useMemo(
     () => ({ selected, select, enabled }),
-    [selected, enabled]
+    [selected, select, enabled]
   );
   return (
     <selectionContext.Provider value={value}>
@@ -159,58 +159,42 @@ export function Select({ enabled = false, children, ...props }: SelectApi) {
   const group = useRef<THREE.Group>(null!);
   const api = useContext(selectionContext);
   useEffect(() => {
-    if (api && enabled) {
-      let changed = false;
-      const current: THREE.Object3D[] = [];
+    if (api) {
+      const toAdd: THREE.Object3D[] = [];
+      const toRemove: THREE.Object3D[] = [];
 
       group.current.traverse((o) => {
         if (o.type === "Mesh") {
-          current.push(o);
-          if (!api.selected.some((m) => m.uuid === o.uuid)) changed = true;
+          if (!api.selected.some((m) => m.uuid === o.uuid)) {
+            toAdd.push(o);
+          } else {
+            toRemove.push(o);
+          }
         }
       });
 
-      console.log("------RUN------");
-
-      console.log(
-        "API.SELECTED: ",
-        JSON.stringify(api.selected.map((m) => m.uuid))
-      );
-
-      console.log("CHANGED: ", changed);
-
-      console.log("CURRENT: ", JSON.stringify(current.map((m) => m.uuid)));
-
-      if (changed) {
+      if (enabled && toAdd.length > 0) {
         api.select((state) => {
-          console.log(
-            "adding: ",
-            `STATE: ${JSON.stringify(state.map((m) => m.uuid))}`,
-            `CURRENT: ${JSON.stringify(current.map((m) => m.uuid))}`
-          );
-          return [...state, ...current];
+          return [...state, ...toAdd];
         });
-        console.log(
-          "changed API.SELECTED: ",
-          JSON.stringify(api.selected.map((m) => m.uuid))
-        );
-        return () => {
-          api.select((state) => {
-            console.log(
-              "cleanup STATE:",
-              JSON.stringify(state.map((m) => m.uuid))
-            );
-            return state.filter((selected) => {
-              console.log(
-                "filtering: ",
-                `SELECTED: ${selected.uuid}`,
-                `CURRENT: ${JSON.stringify(current.map((m) => m.uuid))}`
-              );
-              return current.map((m) => m.uuid).includes(selected.uuid);
-            });
-          });
-        };
       }
+
+      if (!enabled && toRemove.length > 0) {
+        api.select((state) => {
+          return state.filter((o) => !toRemove.some((m) => m.uuid === o.uuid));
+        });
+      }
+
+      return () => {
+        if (!enabled && toRemove.length > 0) {
+          api.select((state) => {
+            return state.filter(
+              (o) => !toRemove.some((m) => m.uuid === o.uuid)
+            );
+          });
+        }
+        return;
+      };
     }
   }, [enabled, children, api]);
   return (
@@ -221,3 +205,17 @@ export function Select({ enabled = false, children, ...props }: SelectApi) {
 }
 
 export default App;
+
+/**
+From my understanding, this is what causes the infinite loop:
+
+1. Object Tracking and State Comparison (Infinite Loop Cause):
+- The `useEffect` hook iterates through all Object3D instances within the group to determine if a state change is needed (changed flag is set if `api.selected.indexOf(o) === -1`).
+- However, only Mesh objects are subsequently added to the `api.selected` state via the current array.
+- This discrepancy means that non-mesh objects within the group are checked against `api.selected` (which exclusively contains meshes). For any non-mesh object, `api.selected.indexOf(o)` will always be -1, causing the changed flag to be perpetually true if any non-mesh object exists in the group.
+- Consequently, `api.select` is called on every render, resulting in an uncontrolled infinite render loop.
+2. `useEffect` Cleanup Undoes State Updates:
+- The cleanup function `api.select((state) => state.filter((selected) => !current.includes(selected)))` correctly attempts to remove the currently added meshes from the `api.selected` state when the component unmounts.
+- However, due to the infinite loop described in point 1, the `useEffect` hook continuously re-adds the current meshes. The cleanup function from the previous `useEffect` run then immediately executes, removing these same meshes.
+- This effectively negates the state update, leaving `api.selected` consistently empty at the start of each new `useEffect` execution and preventing the selection state from ever stabilizing or accumulating.
+*/
