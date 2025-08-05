@@ -6,7 +6,7 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 // Define start and end points (constants moved outside component)
 const startTarget = new THREE.Vector3(0, 0, 0);
-const endPosition = new THREE.Vector3(5, 2, -5);
+const endPosition = new THREE.Vector3(7, 4, -7);
 const endTarget = new THREE.Vector3(0, 1, 0); // Focus slightly above origin
 const animationDuration = 3; // seconds
 

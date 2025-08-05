@@ -31,22 +31,27 @@ export default function FirstPersonCamera({
     if (target) {
       // Calculate target position and rotation
       const [x, y, z] = target.position;
-      const cameraOffset = new THREE.Vector3(0, 1.1, 2); // Slightly above and behind the object
-      const newPosition = new THREE.Vector3(x, y, z).add(cameraOffset);
-      const lookAtTarget = new THREE.Vector3(x, y, z);
+      const [rotX, rotY, rotZ] = target.rotation;
 
       // Store current camera state as start
       startPosition.current.copy(camera.position);
       startQuaternion.current.copy(camera.quaternion);
 
-      // Store target state
-      targetPosition.current.copy(newPosition);
+      // Calculate target quaternion using the object's rotation
+      // Flip the Y rotation by 180 degrees so camera faces the same direction as the object
+      const objectRotation = new THREE.Euler(rotX, rotY + Math.PI, rotZ, "XYZ");
+      targetQuaternion.current.setFromEuler(objectRotation);
 
-      // Calculate target quaternion by looking at the target
-      const tempCamera = camera.clone();
-      tempCamera.position.copy(newPosition);
-      tempCamera.lookAt(lookAtTarget);
-      targetQuaternion.current.copy(tempCamera.quaternion);
+      // Position camera at the object's location with offsets
+      const basePosition = new THREE.Vector3(x, y + 1.1, z); // Slightly above the object
+
+      // Calculate forward direction from the target rotation and move camera forward
+      const forwardDirection = new THREE.Vector3(0, 0, -1); // Camera's forward is -Z
+      forwardDirection.applyQuaternion(targetQuaternion.current);
+      const forwardOffset = forwardDirection.multiplyScalar(1); // Move 2 units forward
+
+      const newPosition = basePosition.add(forwardOffset);
+      targetPosition.current.copy(newPosition);
 
       // Start animation
       setIsAnimating(true);
@@ -54,17 +59,13 @@ export default function FirstPersonCamera({
       animationStartTime.current = 0; // Reset animation timer
     } else {
       // Default position if no objects are selected
-      const defaultPos = new THREE.Vector3(0, 5, 10);
-      const defaultLookAt = new THREE.Vector3(0, 0, 0);
+      const defaultPos = new THREE.Vector3(10, 4, 10);
+      const defaultRotation = new THREE.Euler(0, Math.PI / 4, 0); // Look toward origin
 
       startPosition.current.copy(camera.position);
       startQuaternion.current.copy(camera.quaternion);
       targetPosition.current.copy(defaultPos);
-
-      const tempCamera = camera.clone();
-      tempCamera.position.copy(defaultPos);
-      tempCamera.lookAt(defaultLookAt);
-      targetQuaternion.current.copy(tempCamera.quaternion);
+      targetQuaternion.current.setFromEuler(defaultRotation);
 
       setIsAnimating(true);
       setAnimationComplete(false);
