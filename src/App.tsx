@@ -1,96 +1,28 @@
-import {
-  Box,
-  DragControls,
-  Environment,
-  OrbitControls,
-  PerspectiveCamera,
-  useGLTF,
-} from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import {
-  EffectComposer,
-  Outline,
-  selectionContext,
-  type SelectApi,
-} from "@react-three/postprocessing";
-import { memo, useContext, useEffect, useMemo, useRef, useState } from "react";
-import * as THREE from "three";
+import { useCallback, useEffect, useState } from "react";
 
-import { MinusIcon, PlusIcon } from "lucide-react";
+import { CameraIcon, EarthIcon, MinusIcon, PlusIcon } from "lucide-react";
 import "./App.css";
+import Scene from "./components/scene";
 import { Button } from "./components/ui/button";
+import { initialPieces } from "./data";
+import type { Piece } from "./types";
 
-type Piece = {
-  id: string;
-  position: [number, number, number];
-  rotation: [number, number, number];
-  scale: number;
-  color: string;
-};
-
-const initialPieces: Piece[] = [
-  // {
-  //   id: "a",
-  //   position: [0, 0, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#ff0000",
-  // },
-  // {
-  //   id: "b",
-  //   position: [0, 1, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#0000ff",
-  // },
-  // {
-  //   id: "c",
-  //   position: [0, 2, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#00ff00",
-  // },
-  // {
-  //   id: "d",
-  //   position: [0, 3, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#ffff00",
-  // },
-  // {
-  //   id: "e",
-  //   position: [0, 4, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#ff00ff",
-  // },
-  // {
-  //   id: "f",
-  //   position: [0, 5, 0],
-  //   rotation: [0, 0, 0],
-  //   scale: 1,
-  //   color: "#ffa500",
-  // },
-];
-
-const generatePiece = (): Piece => {
-  const id = Math.random().toString(36).substring(2, 15);
-  const position = [
-    Math.random() * 10 - 5,
-    Math.random() * 10 - 5,
-    Math.random() * 10 - 5,
-  ] as [number, number, number];
-  const rotation = [0, 0, 0] as [number, number, number];
-  const scale = 1;
-  const color = `#${Math.floor(Math.random() * 16777215)
-    .toString(16)
-    .padEnd(6, "0")}`;
-  return { id, position, rotation, scale, color };
-};
+import { ToggleGroup, ToggleGroupItem } from "./components/ui/toggle-group";
+import { generatePiece } from "./data";
 
 function App() {
-  const [selectedId, setSelectedId] = useState<string[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pieces, setPieces] = useState<Piece[]>([]);
+  const [view, setView] = useState<"orbit" | "fpv">("orbit");
+
+  const handleViewChange = useCallback(
+    (value: "orbit" | "fpv") => {
+      if (value === "fpv" && !selectedId) return;
+      setView(value);
+    },
+    [selectedId]
+  );
 
   useEffect(() => {
     setPieces(initialPieces);
@@ -99,6 +31,19 @@ function App() {
   return (
     <div className="w-screen h-screen bg-neutral-300 relative">
       <div className="absolute top-4 right-4 flex gap-2 z-10">
+        <ToggleGroup
+          variant="default"
+          type="single"
+          value={view}
+          onValueChange={handleViewChange}
+        >
+          <ToggleGroupItem value="orbit" aria-label="Toggle bold">
+            <EarthIcon className="h-4 w-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="fpv" aria-label="Toggle italic">
+            <CameraIcon className="h-4 w-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
         <Button
           variant="outline"
           size="icon"
@@ -117,229 +62,19 @@ function App() {
         </Button>
       </div>
 
-      <Canvas onPointerMissed={() => setSelectedId([])}>
-        <OrbitControls
-          enabled={selectedId.length === 0}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI / 2.25}
+      <Canvas
+        onPointerMissed={() => setSelectedId(null)}
+        camera={{ position: [0, 0, 100] }}
+      >
+        <Scene
+          selectedId={selectedId}
+          pieces={pieces}
+          setSelectedId={setSelectedId}
+          view={view}
         />
-        <PerspectiveCamera makeDefault position={[0, 0, 10]} />
-        <ambientLight intensity={Math.PI / 2} />
-        <spotLight
-          position={[10, 10, 10]}
-          angle={0.15}
-          penumbra={1}
-          decay={0}
-          intensity={Math.PI}
-        />
-        <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
-
-        <Selection>
-          <EffectComposer autoClear={false}>
-            <Outline
-              blur
-              edgeStrength={10}
-              visibleEdgeColor={0xffffff}
-              hiddenEdgeColor={0x22090a}
-            />
-          </EffectComposer>
-          {pieces.map((piece) => (
-            <CustomBox
-              id={piece.id}
-              key={piece.id}
-              isSelected={selectedId.includes(piece.id)}
-              onPointerDown={() =>
-                setSelectedId((prev) =>
-                  prev.includes(piece.id)
-                    ? prev.filter((id) => id !== piece.id)
-                    : [...prev, piece.id]
-                )
-              }
-              position={piece.position}
-              color={piece.color}
-            />
-          ))}
-        </Selection>
-
-        <Table />
-
-        <Environment preset="sunset" background blur={0.1} />
       </Canvas>
     </div>
   );
 }
 
-function Table() {
-  const texture = useGLTF("/broken_brick_wall_1k.gltf");
-
-  return (
-    <Box
-      position={[0, 0, 0]}
-      rotation={[-Math.PI / 2, 0, 0]}
-      scale={1}
-      args={[10, 10, 0.1]}
-    >
-      <meshStandardMaterial map={texture.materials.broken_brick_wall.map} />
-    </Box>
-  );
-}
-
-const CustomBox = memo(
-  ({
-    isSelected,
-    onPointerDown,
-    color,
-    position,
-    id,
-  }: {
-    isSelected: boolean;
-    onPointerDown: () => void;
-    color: string;
-    position: [number, number, number];
-    id: string;
-  }) => {
-    return (
-      <Select enabled={isSelected}>
-        <DragControls axisLock={"y"}>
-          <group scale={1} position={position} onClick={onPointerDown}>
-            <mesh name={id}>
-              <boxGeometry args={[1, 1, 1]} />
-              <meshStandardMaterial color={color} />
-            </mesh>
-          </group>
-        </DragControls>
-      </Select>
-    );
-  },
-  (prevProps, nextProps) => {
-    return prevProps.isSelected === nextProps.isSelected;
-  }
-);
-
-export function Selection({
-  children,
-  enabled = true,
-}: {
-  enabled?: boolean;
-  children: React.ReactNode;
-}) {
-  const [selected, select] = useState<THREE.Object3D[]>([]);
-  const value = useMemo(
-    () => ({ selected, select, enabled }),
-    [selected, select, enabled]
-  );
-  return (
-    <selectionContext.Provider value={value}>
-      {children}
-    </selectionContext.Provider>
-  );
-}
-
-export function Select({ enabled = false, children, ...props }: SelectApi) {
-  const group = useRef<THREE.Group>(null!);
-  const api = useContext(selectionContext);
-  useEffect(() => {
-    // run triggered through initialization or state update
-    if (api) {
-      const toBeAdded: THREE.Object3D[] = [];
-      const toBeRemoved: THREE.Object3D[] = [];
-      const current: THREE.Object3D[] = [];
-
-      group.current.traverse((o) => {
-        if (o.type === "Mesh") {
-          // keep a track of all meshes in the group, to be referenced in the cleanup function
-          current.push(o);
-
-          // check if the mesh is already selected
-          const alreadySelected = api.selected.includes(o);
-
-          // if the mesh is not selected and the selection is enabled, mark it for selection
-          // if the mesh is selected and the selection is disabled, mark it for removal
-          if (enabled && !alreadySelected) {
-            toBeAdded.push(o);
-          } else if (!enabled && alreadySelected) {
-            toBeRemoved.push(o);
-          }
-        }
-      });
-
-      // add the meshes that are not selected and the selection is enabled
-      // this will trigger a re-run of the useEffect hook
-      if (toBeAdded.length > 0) {
-        api.select((state) => {
-          return [...state, ...toBeAdded];
-        });
-      }
-
-      // remove the meshes that are selected and the selection is disabled
-      // this will trigger a re-run of the useEffect hook
-      if (toBeRemoved.length > 0) {
-        api.select((state) => {
-          return state.filter((o) => !toBeRemoved.includes(o));
-        });
-      }
-
-      // if there's nothing to add or remove the useEffect hook will not be re-run and everything stops here
-
-      // cleanup function runs before the body of the next useEffect hook re-run
-      return () => {
-        // the cleanup function only handles objects removed from the scene
-        // if a mesh doesn't have a parent, it means it's not attached to a scene and we can remove it from the selection
-        // so that we don't hog the memory with deleted objects
-
-        const orphaned = current.filter((o) => o.parent === null);
-
-        if (orphaned.length > 0) {
-          api.select((state) => {
-            console.log("set state in cleanup");
-            return state.filter((o) => !orphaned.includes(o));
-          });
-        }
-
-        return;
-      };
-    }
-  }, [enabled, children, api]);
-  return (
-    <group ref={group} {...props}>
-      {children}
-    </group>
-  );
-}
-
 export default App;
-
-/**
-From my findings, this is what causes the infinite loop:
-
-1. Object Tracking and State Comparison (Infinite Loop Cause 1):
-- The `useEffect` hook iterates through all Object3D instances within the group to determine if a state change is needed (changed flag is set if `api.selected.indexOf(o) === -1`).
-- However, only Mesh objects are subsequently added to the `api.selected` state via the current array.
-- This discrepancy means that non-mesh objects within the group are checked against `api.selected` (which exclusively contains meshes). For any non-mesh object, `api.selected.indexOf(o)` will always be -1, causing the changed flag to be perpetually true if any non-mesh object exists in the group.
-- Consequently, `api.select` is called on every render, resulting in an uncontrolled infinite render loop.
-2. `useEffect` Cleanup Always Alters State (Infinite Loop Cause 2):
-- The cleanup function `api.select((state) => state.filter((selected) => !current.includes(selected)))` correctly attempts to remove the currently added meshes from the `api.selected` state when the component unmounts.
-- However, because the `useEffect` hook is re-run after each addition or removal, the cleanup function is guaranteed to be called, it then alters the state resulting in an infinite loop.
-*/
-
-/**
-Logic:
-
-A. for a selection action:
-- enabled changes to true which causes the useEffect hook to run
-- objects are added to the state, triggering a re-run of the useEffect hook
-- cleanup function runs, does nothing because there's no orphaned objects
-- useEffect hook re-runs and sees that there's nothing to add or remove
-- useEffect hook stops here
-
-B. for a un-selection action:
-- enabled changes to false which causes the useEffect hook to run
-- objects are removed from the state, triggering a re-run of the useEffect hook
-- cleanup function runs, does nothing because there's no orphaned objects
-- useEffect hook re-runs and sees that there's nothing to add or remove
-- useEffect hook stops here
-
-C. for an unmount action:
-- useEffect cleanup runs, all objects are orphaned, so we remove them from the state
-- useEffect hook is destroyed
-*/
