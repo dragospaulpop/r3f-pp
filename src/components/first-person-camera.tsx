@@ -1,11 +1,10 @@
-import type { Piece } from "@/types";
 import { FlyControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 interface FirstPersonCameraProps {
-  target: Piece | null;
+  target: THREE.Group | null;
   setStartPosition: (position: THREE.Vector3) => void;
 }
 
@@ -29,9 +28,12 @@ export default function FirstPersonCamera({
 
   useEffect(() => {
     if (target) {
+      const cameraTarget = target.getObjectByName("cameraTarget");
+      const cameraLookAt = target.getObjectByName("cameraLookAt");
+
       // Calculate target position and rotation
-      const [x, y, z] = target.position;
-      const [rotX, rotY, rotZ] = target.rotation;
+      const [x, y, z] = cameraTarget?.position || target.position;
+      const [rotX, rotY, rotZ] = cameraLookAt?.rotation || target.rotation;
 
       // Store current camera state as start
       startPosition.current.copy(camera.position);

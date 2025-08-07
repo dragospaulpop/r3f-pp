@@ -4,4 +4,5 @@ export type Piece = {
   rotation: [number, number, number];
   scale: number;
   model: string;
+  eyes: boolean;
 };

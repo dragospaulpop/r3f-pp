@@ -3,6 +3,7 @@ import { Environment } from "@react-three/drei";
 import { EffectComposer, Outline } from "@react-three/postprocessing";
 import {
   useCallback,
+  useRef,
   useState,
   type Dispatch,
   type SetStateAction,
@@ -31,6 +32,8 @@ export default function Scene({
     new THREE.Vector3(10, 10, 10)
   );
 
+  const pieceRef = useRef<Record<string, THREE.Group | null>>({});
+
   const handleSelect = useCallback(
     (id: string) => {
       const isSelected = selectedId === id;
@@ -54,7 +57,7 @@ export default function Scene({
       )}
       {view === "fpv" && (
         <FirstPersonCamera
-          target={pieces.find((piece) => selectedId === piece.id) || null}
+          target={pieceRef.current[selectedId || ""] || null}
           setStartPosition={setStartPosition}
         />
       )}
@@ -86,6 +89,8 @@ export default function Scene({
             rotation={piece.rotation}
             model={piece.model}
             scale={piece.scale}
+            eyes={piece.eyes}
+            ref={(el: THREE.Group | null) => (pieceRef.current[piece.id] = el)}
           />
         ))}
       </Selection>

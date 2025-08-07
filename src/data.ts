@@ -5,6 +5,7 @@ const models = [
   "/models/bullhead/bull_head_1k.gltf",
   "/models/horsehead/horse_head_1k.gltf",
   "/models/lionhead/lion_head_1k.gltf",
+  "/models/person.glb",
 ];
 
 export const initialPieces: Piece[] = [
@@ -14,6 +15,7 @@ export const initialPieces: Piece[] = [
     rotation: [0, Math.PI / 3, 0],
     scale: 4,
     model: models[0],
+    eyes: true,
   },
   {
     id: "bullhead",
@@ -21,6 +23,7 @@ export const initialPieces: Piece[] = [
     rotation: [0, Math.PI / 1.5, 0],
     scale: 4,
     model: models[1],
+    eyes: true,
   },
   {
     id: "horsehead",
@@ -28,6 +31,7 @@ export const initialPieces: Piece[] = [
     rotation: [0, -Math.PI / 3, 0],
     scale: 4,
     model: models[2],
+    eyes: true,
   },
   {
     id: "lionhead",
@@ -35,6 +39,15 @@ export const initialPieces: Piece[] = [
     rotation: [0, -Math.PI / 1.5, 0],
     scale: 4,
     model: models[3],
+    eyes: true,
+  },
+  {
+    id: "poerson",
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    model: models[4],
+    eyes: true,
   },
 ];
 
@@ -48,5 +61,5 @@ export const generatePiece = (): Piece => {
   const rotation = [0, 0, 0] as [number, number, number];
   const scale = 1;
   const model = models[Math.floor(Math.random() * models.length)];
-  return { id, position, rotation, scale, model };
+  return { id, position, rotation, scale, model, eyes: true };
 };

@@ -1,7 +1,7 @@
-import { DragControls } from "@react-three/drei";
-import { useLoader } from "@react-three/fiber";
-import { memo } from "react";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { shallowEqual } from "@/lib/utils";
+import { DragControls, useGLTF } from "@react-three/drei";
+import { memo, useEffect } from "react";
+import type { Group, Mesh, MeshStandardMaterial } from "three";
 import { Select } from "./selection";
 
 export default memo(
@@ -13,6 +13,8 @@ export default memo(
     rotation,
     id,
     scale,
+    eyes,
+    ref,
   }: {
     isSelected: boolean;
     onPointerDown: () => void;
@@ -21,8 +23,25 @@ export default memo(
     rotation: [number, number, number];
     id: string;
     scale: number;
+    eyes: boolean;
+    ref: React.RefObject<Group | null> | ((el: Group | null) => void);
   }) {
-    const gltf = useLoader(GLTFLoader, model);
+    const { scene, nodes } = useGLTF(model);
+    const eyesNode = nodes?.eyes;
+    const torsoNode = nodes?.torso as Mesh;
+
+    useEffect(() => {
+      if (eyesNode) {
+        eyesNode.visible = eyes;
+      }
+    }, [eyesNode, eyes]);
+
+    useEffect(() => {
+      if (torsoNode) {
+        const material = torsoNode.material as MeshStandardMaterial;
+        material.color.set(eyes ? "red" : "blue");
+      }
+    }, [torsoNode, eyes]);
 
     return (
       <Select enabled={isSelected}>
@@ -33,14 +52,15 @@ export default memo(
             rotation={rotation}
             onClick={onPointerDown}
             name={id}
+            ref={ref}
           >
-            <primitive object={gltf.scene} />
+            <primitive object={scene} />
           </group>
         </DragControls>
       </Select>
     );
   },
   (prevProps, nextProps) => {
-    return prevProps.isSelected === nextProps.isSelected;
+    return shallowEqual(prevProps, nextProps);
   }
 );
