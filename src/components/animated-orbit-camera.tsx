@@ -11,29 +11,28 @@ const endTarget = new THREE.Vector3(0, 1, 0); // Focus slightly above origin
 const animationDuration = 3; // seconds
 
 export default function AnimatedOrbitCamera({
-  startPosition,
-  setStartPosition,
+  lastOrbitPosition,
+  setLastOrbitPosition,
 }: {
-  startPosition: THREE.Vector3;
-  setStartPosition: (position: THREE.Vector3) => void;
+  lastOrbitPosition: THREE.Vector3 | null;
+  setLastOrbitPosition: (position: THREE.Vector3) => void;
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const { camera } = useThree();
   const [animationStarted, setAnimationStarted] = useState(false);
   const [animationComplete, setAnimationComplete] = useState(false);
   const animationStartTime = useRef<number>(0);
+  const startPosition = useRef<THREE.Vector3>(camera.position.clone());
+  const animateToPosition = useRef<THREE.Vector3>(
+    lastOrbitPosition || endPosition
+  );
 
   useEffect(() => {
-    // Set initial camera position and target immediately on mount
-    // OrbitControls will override this if it's "makeDefault" and takes over
-    // so we disable it temporarily.
     if (controlsRef.current) {
-      camera.position.copy(startPosition);
       controlsRef.current.target.copy(startTarget);
       controlsRef.current.update(); // Important to update controls after manual changes
     }
     setAnimationStarted(true); // Trigger animation on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame((state) => {
@@ -49,7 +48,11 @@ export default function AnimatedOrbitCamera({
 
     if (progress < 1) {
       // Interpolate camera position
-      camera.position.lerpVectors(startPosition, endPosition, progress);
+      camera.position.lerpVectors(
+        startPosition.current,
+        animateToPosition.current,
+        progress
+      );
 
       // Interpolate controls target
       if (controlsRef.current) {
@@ -63,7 +66,7 @@ export default function AnimatedOrbitCamera({
     } else {
       // Animation complete
       if (controlsRef.current) {
-        camera.position.copy(endPosition);
+        camera.position.copy(animateToPosition.current);
         controlsRef.current.target.copy(endTarget);
         controlsRef.current.update();
         controlsRef.current.enabled = true; // Re-enable controls after animation
@@ -80,11 +83,7 @@ export default function AnimatedOrbitCamera({
       enableDamping
       dampingFactor={0.05}
       onEnd={() => {
-        // Only update start position when animation is complete
-        // This ensures the next remount will start from where the user left the camera
-        if (animationComplete) {
-          setStartPosition(camera.position.clone());
-        }
+        setLastOrbitPosition(camera.position.clone());
       }}
     />
   );

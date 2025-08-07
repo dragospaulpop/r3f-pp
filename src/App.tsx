@@ -90,7 +90,7 @@ function App() {
 
       <Canvas
         onPointerMissed={() => setSelectedId(null)}
-        camera={{ position: [0, 0, 100] }}
+        camera={{ position: [10, 10, 10] }}
       >
         <Scene
           selectedId={selectedId}

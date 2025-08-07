@@ -28,10 +28,8 @@ export default function Scene({
   setSelectedId,
   view,
 }: SceneProps) {
-  const [startPosition, setStartPosition] = useState(
-    new THREE.Vector3(10, 10, 10)
-  );
-
+  const [lastOrbitPosition, setLastOrbitPosition] =
+    useState<THREE.Vector3 | null>(null);
   const pieceRef = useRef<Record<string, THREE.Group | null>>({});
 
   const handleSelect = useCallback(
@@ -51,14 +49,13 @@ export default function Scene({
     <>
       {view === "orbit" && (
         <AnimatedOrbitCamera
-          startPosition={startPosition}
-          setStartPosition={setStartPosition}
+          lastOrbitPosition={lastOrbitPosition}
+          setLastOrbitPosition={setLastOrbitPosition}
         />
       )}
       {view === "fpv" && (
         <FirstPersonCamera
           target={pieceRef.current[selectedId || ""] || null}
-          setStartPosition={setStartPosition}
         />
       )}
       <ambientLight intensity={Math.PI / 2} />
