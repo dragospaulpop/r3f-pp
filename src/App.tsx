@@ -2,6 +2,7 @@ import { Canvas } from "@react-three/fiber";
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  BuildingIcon,
   CameraIcon,
   EarthIcon,
   EyeIcon,
@@ -22,6 +23,7 @@ function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [view, setView] = useState<"orbit" | "fpv">("orbit");
+  const [environmentVisibility, setEnvironmentVisibility] = useState(true);
 
   const handleViewChange = useCallback(
     (value: "orbit" | "fpv") => {
@@ -38,6 +40,16 @@ function App() {
   return (
     <div className="w-screen h-screen bg-neutral-300 relative">
       <div className="absolute top-4 right-4 flex gap-2 z-10">
+        <Toggle
+          variant="outline"
+          size="default"
+          pressed={environmentVisibility}
+          onPressedChange={() =>
+            setEnvironmentVisibility(!environmentVisibility)
+          }
+        >
+          <BuildingIcon className="h-4 w-4" />
+        </Toggle>
         {selectedId && (
           <Toggle
             variant="outline"
@@ -94,6 +106,7 @@ function App() {
       >
         <Scene
           selectedId={selectedId}
+          environmentVisibility={environmentVisibility}
           pieces={pieces}
           setSelectedId={setSelectedId}
           view={view}

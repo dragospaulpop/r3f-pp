@@ -1,5 +1,6 @@
 import type { Piece } from "@/types";
 import { Environment } from "@react-three/drei";
+import { useLoader, useThree } from "@react-three/fiber";
 import { EffectComposer, Outline } from "@react-three/postprocessing";
 import {
   useCallback,
@@ -20,6 +21,23 @@ interface SceneProps {
   pieces: Piece[];
   setSelectedId: Dispatch<SetStateAction<string | null>>;
   view: "orbit" | "fpv";
+  environmentVisibility: boolean;
+}
+
+function Background({
+  children,
+  visibility,
+}: {
+  children: React.ReactNode;
+  visibility: boolean;
+}) {
+  const { scene } = useThree();
+  const texture = useLoader(THREE.TextureLoader, "backgrounds/library.jpg");
+
+  if (visibility) {
+    scene.background = texture;
+  }
+  return children;
 }
 
 export default function Scene({
@@ -27,6 +45,7 @@ export default function Scene({
   pieces,
   setSelectedId,
   view,
+  environmentVisibility,
 }: SceneProps) {
   const [lastOrbitPosition, setLastOrbitPosition] =
     useState<THREE.Vector3 | null>(null);
@@ -46,7 +65,7 @@ export default function Scene({
   );
 
   return (
-    <>
+    <Background visibility={!environmentVisibility}>
       {view === "orbit" && (
         <AnimatedOrbitCamera
           lastOrbitPosition={lastOrbitPosition}
@@ -67,6 +86,7 @@ export default function Scene({
         intensity={Math.PI}
       />
       <pointLight position={[-10, -10, -10]} decay={0} intensity={Math.PI} />
+
       <Selection>
         <EffectComposer autoClear={false}>
           <Outline
@@ -92,7 +112,9 @@ export default function Scene({
         ))}
       </Selection>
       <Table />
-      <Environment preset="sunset" background blur={0.25} />
-    </>
+      {environmentVisibility && (
+        <Environment preset="sunset" background blur={0.35} />
+      )}
+    </Background>
   );
 }
