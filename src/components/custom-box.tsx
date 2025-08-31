@@ -1,7 +1,8 @@
 import { shallowEqual } from "@/lib/utils";
 import { DragControls, useGLTF } from "@react-three/drei";
-import { memo, useEffect } from "react";
+import { memo, useEffect, useMemo } from "react";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
+import { SkeletonUtils } from "three-stdlib";
 import { Select } from "./selection";
 
 export default memo(
@@ -26,9 +27,33 @@ export default memo(
     eyes: boolean;
     ref: React.RefObject<Group | null> | ((el: Group | null) => void);
   }) {
-    const { scene, nodes } = useGLTF(model);
-    const eyesNode = nodes?.eyes;
-    const torsoNode = nodes?.torso as Mesh;
+    const { scene } = useGLTF(model);
+    const instance = useMemo(
+      () => SkeletonUtils.clone(scene) as Group,
+      [scene]
+    );
+    const eyesNode = useMemo(
+      () => instance.getObjectByName("eyes") as Mesh | null,
+      [instance]
+    );
+    const torsoNode = useMemo(
+      () => instance.getObjectByName("torso") as Mesh | null,
+      [instance]
+    );
+    const headNode = useMemo(
+      () => instance.getObjectByName("head") as Mesh | null,
+      [instance]
+    );
+    const leftArmNode = useMemo(
+      () => instance.getObjectByName("leftArm") as Mesh | null,
+      [instance]
+    );
+    const rightArmNode = useMemo(
+      () => instance.getObjectByName("rightArm") as Mesh | null,
+      [instance]
+    );
+
+    // console.log(nodes);
 
     useEffect(() => {
       if (eyesNode) {
@@ -37,11 +62,31 @@ export default memo(
     }, [eyesNode, eyes]);
 
     useEffect(() => {
+      [torsoNode, headNode, leftArmNode, rightArmNode].forEach((mesh) => {
+        if (!mesh) return;
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((m) => m.clone());
+        } else {
+          mesh.material = (mesh.material as MeshStandardMaterial).clone();
+        }
+      });
       if (torsoNode) {
-        const material = torsoNode.material as MeshStandardMaterial;
-        material.color.set(eyes ? "red" : "blue");
+        const materialTorso = torsoNode.material as MeshStandardMaterial;
+        materialTorso.color.set(eyes ? "red" : "green");
       }
-    }, [torsoNode, eyes]);
+      if (headNode) {
+        const materialHead = headNode.material as MeshStandardMaterial;
+        materialHead.color.set(eyes ? "red" : "yellow");
+      }
+      if (leftArmNode) {
+        const materialLeftArm = leftArmNode.material as MeshStandardMaterial;
+        materialLeftArm.color.set(eyes ? "red" : "blue");
+      }
+      if (rightArmNode) {
+        const materialRightArm = rightArmNode.material as MeshStandardMaterial;
+        materialRightArm.color.set(eyes ? "red" : "orange");
+      }
+    }, [torsoNode, headNode, leftArmNode, rightArmNode, eyes]);
 
     return (
       <Select enabled={isSelected}>
@@ -54,7 +99,7 @@ export default memo(
             name={id}
             ref={ref}
           >
-            <primitive object={scene} />
+            <primitive object={instance} />
           </group>
         </DragControls>
       </Select>

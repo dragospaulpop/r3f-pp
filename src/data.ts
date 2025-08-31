@@ -42,8 +42,16 @@ export const initialPieces: Piece[] = [
     eyes: true,
   },
   {
-    id: "poerson",
+    id: "person1",
     position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: 1,
+    model: models[4],
+    eyes: true,
+  },
+  {
+    id: "person2",
+    position: [1, 0, 1],
     rotation: [0, 0, 0],
     scale: 1,
     model: models[4],
